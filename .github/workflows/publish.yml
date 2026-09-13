@@ -7,7 +7,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write # npm provenance
+  id-token: write # npm trusted publishing and provenance
 
 jobs:
   publish:
@@ -21,9 +21,14 @@ jobs:
 
       - uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '22'
           registry-url: https://registry.npmjs.org
           cache: npm
+
+      # Trusted publishing needs npm 11.5.1 or newer, which is ahead of what
+      # any Node release currently bundles.
+      - name: Use a recent npm
+        run: npm install --global npm@latest
 
       - run: npm ci
 
@@ -43,7 +48,8 @@ jobs:
             exit 1
           fi
 
+      # No token: npm authenticates through the OIDC identity of this workflow,
+      # configured as a trusted publisher on npmjs.com. Provenance is attached
+      # automatically.
       - name: Publish
-        run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public

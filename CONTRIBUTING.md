@@ -63,6 +63,10 @@ reproducible across CPUs, so do not remove that check to make a case pass.
 1. Bump `version` in `package.json` on `dev`, and merge to `main`.
 2. Publish a GitHub release tagged `vX.Y.Z`.
 3. The `Publish to npm` workflow checks the tag against `package.json`, runs the
-   tests, and publishes with provenance.
+   tests, and publishes.
 
-The workflow needs an `NPM_TOKEN` repository secret with publish rights.
+Publishing uses npm [trusted publishing](https://docs.npmjs.com/trusted-publishers):
+the workflow authenticates with its own OIDC identity, so there is no npm token
+in this repository to leak or rotate, and provenance is attached automatically.
+The package's trusted publisher on npmjs.com is this repository, the workflow
+`.github/workflows/publish.yml`, and the `npm` environment.
