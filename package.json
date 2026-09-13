@@ -1,0 +1,56 @@
+{
+  "name": "cursory-js",
+  "version": "2.0.0",
+  "description": "Mouse Trajectory Factory. Generate 100% human-realistic mouse trajectories with timings. A TypeScript port of Vinyzu's cursory.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "LICENSE",
+    "NOTICE",
+    "README.md"
+  ],
+  "scripts": {
+    "prebuild": "node scripts/copy-file.mjs src/trajectories.json.gz dist/trajectories.json.gz",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "pretest": "node scripts/copy-file.mjs src/trajectories.json.gz .test-build/src/trajectories.json.gz && node scripts/copy-file.mjs test/fixtures/parity.json .test-build/test/fixtures/parity.json",
+    "test": "tsc -p tsconfig.test.json && node --test .test-build/test/*.test.js",
+    "coverage": "npm run pretest && tsc -p tsconfig.test.json && c8 node --test .test-build/test/*.test.js",
+    "example:plot": "npm run build && node examples/plotTrajectories.mjs",
+    "prepublishOnly": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JWriter20/cursory-js.git"
+  },
+  "keywords": [
+    "mouse",
+    "cursor",
+    "trajectory",
+    "mouse-movement",
+    "human-like",
+    "bezier",
+    "playwright",
+    "puppeteer",
+    "browser-automation",
+    "anti-bot",
+    "scraping",
+    "cursory"
+  ],
+  "author": "Jake Writer",
+  "license": "LGPL-3.0-or-later",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18"
+  },
+  "bugs": {
+    "url": "https://github.com/JWriter20/cursory-js/issues"
+  },
+  "homepage": "https://github.com/JWriter20/cursory-js#readme",
+  "devDependencies": {
+    "@types/node": "24.10.2",
+    "c8": "12.0.0",
+    "typescript": "5.9.3"
+  }
+}

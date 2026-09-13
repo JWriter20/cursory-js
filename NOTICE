@@ -1,0 +1,38 @@
+cursory-js
+==========
+
+A TypeScript port of Cursory (https://github.com/Vinyzu/cursory).
+
+Original work © Vinyzu, licensed under the GNU Lesser General Public License
+v3.0 or later. Cursory is retroactively dual-licensed under LGPLv3-or-later and
+GPLv3-or-later; this port is distributed under LGPLv3-or-later, the same terms.
+
+This port © Jake Writer, likewise under LGPLv3-or-later. It is a
+reimplementation of the original algorithms in TypeScript; no Python source is
+redistributed here.
+
+Bundled data
+------------
+
+src/trajectories.json.gz is the recorded-trajectory database from the original
+project, redistributed byte for byte under the same licence. The recordings
+behind it are credited by the original author to:
+
+  - Margit Antal, Norbert Fejer and Krisztian Buza, for SapiMouse
+    (https://ieeexplore.ieee.org/document/9465583)
+  - MIMIC-LOGICS, for Mouse-Synthesizer
+    (https://github.com/MIMIC-LOGICS/Mouse-Synthesizer)
+
+Derived from numpy
+------------------
+
+To reproduce the original's output for a given seed, this port reimplements the
+parts of numpy that Cursory's results depend on: the PCG64 bit generator and
+SeedSequence, the ziggurat normal sampler and its constant tables, Lemire's
+bounded-integer method, and pairwise summation. Those algorithms and the
+ziggurat tables come from numpy (https://github.com/numpy/numpy), © 2005-2025
+NumPy Developers, BSD-3-Clause. numpy's PCG64 is itself © 2014 Melissa O'Neill
+and © 2015 Robert Kern, MIT licensed.
+
+math.hypot follows CPython's vector_norm (https://github.com/python/cpython),
+© 2001-2025 Python Software Foundation, PSF License v2.

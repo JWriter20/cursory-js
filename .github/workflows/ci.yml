@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ['18', '20', '22', '24']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Run the example against the build
+        run: node examples/plotTrajectories.mjs --seed 7 --out /tmp/trajectories.svg
+
+      - name: Check the committed example image is current
+        if: matrix.node-version == '20'
+        run: |
+          node examples/plotTrajectories.mjs --seed 7 --out /tmp/check.svg
+          diff -u docs/trajectories.svg /tmp/check.svg
+
+      - name: Check the package contents
+        if: matrix.node-version == '20'
+        run: npm pack --dry-run
