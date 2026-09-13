@@ -15,7 +15,7 @@ same trajectory here as it does in Python — see
 [Parity with the Python original](#parity-with-the-python-original).
 
 <p align="center">
-  <img alt="Ten generated trajectories" src="./docs/trajectories.svg" width="820">
+  <img alt="Ten generated trajectories" src="https://raw.githubusercontent.com/JWriter20/cursory-js/main/docs/trajectories.svg" width="820">
 </p>
 
 *Ten trajectories at the default 60 Hz. Hollow circles start, filled circles
