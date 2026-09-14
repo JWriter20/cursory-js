@@ -24,19 +24,33 @@ passed.
 
 ## Moving the cursor
 
-Wait the gap between consecutive timings, minus the time the move itself took:
+Dispatch each move without awaiting it, and pace the loop against the timings:
 
 ```js
+const cdp = await page.context().newCDPSession(page);
+const start = performance.now();
+
 for (let i = 0; i < points.length; i += 1) {
-  const gap = timings[i] - (i > 0 ? timings[i - 1] : 0);
-  const before = performance.now();
-  await page.mouse.move(points[i][0], points[i][1]);
-  await sleep(Math.max(gap - (performance.now() - before), 0));
+  void cdp
+    .send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: points[i][0], y: points[i][1] })
+    .catch(() => {});
+
+  const next = timings[i + 1];
+  if (next !== undefined) {
+    await sleep(next - (performance.now() - start));
+  }
 }
 ```
 
-Do not skip the waits. The timing pattern is most of what makes the movement
-look human; replaying the points as fast as possible does not.
+Two ways to get this wrong:
+
+- **Skipping the waits.** The timing pattern is most of what makes the movement
+  look human; replaying the points as fast as possible does not.
+- **Awaiting each move.** `await page.mouse.move()` waits for the browser to
+  acknowledge the event, which takes a median of 16.67 ms -- one 60 Hz frame.
+  That is the whole budget between two 60 Hz samples, so the playback stretches
+  and the timing is lost. Awaiting raw CDP costs the same; not awaiting is the
+  fix.
 
 ## Things worth knowing
 
@@ -48,9 +62,9 @@ look human; replaying the points as fast as possible does not.
   movement between the same two points will be identical.
 - **`directness`** (0 to 1, default 0.65) shifts the whole distribution towards
   straighter or more wandering paths. It does not exclude either extreme.
-- **Playwright and Puppeteer add a millisecond or two per move**, which eats
-  into short gaps. At high `frequency` you may not keep up; drive CDP directly
-  if the timing has to be tight.
+- **An awaited mouse event costs a full browser frame** (~16.7 ms measured), so
+  await it per sample and you cannot exceed roughly 60 Hz. Dispatch without
+  awaiting, as above, and playback lands within 0.05% of the intended duration.
 - **A zero-length movement returns a single point**, so guard against feeding it
   the position the cursor is already at if your caller cannot handle that.
 

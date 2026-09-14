@@ -21,7 +21,10 @@ const scope = {
   console: { log: () => undefined },
   from: [10, 10] as const,
   to: [400, 300] as const,
-  page: { mouse: { move: async () => undefined } },
+  page: {
+    mouse: { move: async () => undefined },
+    context: () => ({ newCDPSession: async () => ({ send: async () => undefined }) }),
+  },
   sleep: async () => undefined,
 };
 

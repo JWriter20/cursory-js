@@ -56,27 +56,43 @@ last points are exactly the start and end you asked for.
 
 ### Driving a real cursor
 
-Wait out the gap between consecutive timings, minus however long the move itself
-took:
+Dispatch each move without awaiting it, and pace the loop yourself:
 
 ```js
 import { generateTrajectory } from 'cursory-js';
 
 const { points, timings } = generateTrajectory(from, to, { frequency: 60 });
+const cdp = await page.context().newCDPSession(page);
+const start = performance.now();
 
 for (let i = 0; i < points.length; i += 1) {
-  const gap = timings[i] - (i > 0 ? timings[i - 1] : 0);
-  const before = performance.now();
-  await page.mouse.move(points[i][0], points[i][1]);
-  await sleep(Math.max(gap - (performance.now() - before), 0));
+  // Not awaited: see below.
+  void cdp
+    .send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: points[i][0], y: points[i][1] })
+    .catch(() => {});
+
+  const next = timings[i + 1];
+  if (next !== undefined) {
+    await sleep(next - (performance.now() - start));
+  }
 }
 ```
 
-[`examples/playwright.mjs`](./examples/playwright.mjs) is a complete version of
-that, including a precise sleep and a count of how many moves the browser could
-not keep up with. Playwright and Puppeteer both drive the browser over a socket,
-which costs a millisecond or two per move; if you need timing tighter than that,
-drive CDP directly.
+**Do not `await page.mouse.move()` per sample.** Awaiting waits for the browser
+to acknowledge the event, and it acknowledges on its rendering cadence. Measured
+against headless Chromium 140: a median of **16.67 ms per awaited move**, which
+is exactly one 60 Hz frame. At 60 Hz that is the entire budget between samples,
+so 44% of moves overrun their deadline and the trajectory plays back stretched —
+losing the timing that made it look human in the first place. Awaiting raw CDP
+costs the same 16.6 ms, so "drop to CDP" is not the fix; not awaiting is.
+
+Dispatched without awaiting, the same trajectories play back within **0.05%** of
+their intended duration. The browser coalesces a few events when they arrive
+faster than it renders, which is what a real mouse does too.
+
+[`examples/playwright.mjs`](./examples/playwright.mjs) is a complete, runnable
+version, and it reports its own drift so you can measure your setup rather than
+trust these numbers.
 
 ### Reproducible trajectories
 

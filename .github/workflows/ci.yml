@@ -45,6 +45,38 @@ jobs:
           node examples/plotTrajectories.mjs --seed 7 --out /tmp/check.svg
           diff -u docs/trajectories.svg /tmp/check.svg
 
-      - name: Check the package contents
-        if: matrix.node-version == '20'
-        run: npm pack --dry-run
+      # `npm test` exercises src/. This exercises what consumers actually get:
+      # the tarball, its entry points, and the data file the build has to copy
+      # in. A broken `files` list or a missed asset passes every other step.
+      - name: Install the packed tarball and use it
+        run: |
+          set -e
+          npm pack
+          consumer="$(mktemp -d)"
+          mv cursory-js-*.tgz "$consumer/"
+          cd "$consumer"
+          npm init -y > /dev/null
+          npm install ./cursory-js-*.tgz
+          node -e "
+            const assert = require('node:assert/strict');
+            const { generateTrajectory } = require('cursory-js');
+            const start = [12.5, 40];
+            const end = [980, 610];
+            const first = generateTrajectory(start, end, { seed: 42, frequency: 60 });
+            const second = generateTrajectory(start, end, { seed: 42, frequency: 60 });
+            assert.deepEqual(first, second, 'seed is not reproducible from the package');
+            assert.deepEqual(first.points[0], start);
+            assert.deepEqual(first.points.at(-1), end);
+            assert.equal(first.points.length, first.timings.length);
+            assert.ok(first.points.length > 10, 'suspiciously few points');
+            assert.ok(first.timings.every((t, i) => i === 0 || t >= first.timings[i - 1]));
+            console.log('cjs require: ' + first.points.length + ' points');
+          "
+          node --input-type=module -e "
+            import assert from 'node:assert/strict';
+            import { generateTrajectory, LOADED_TRAJECTORIES } from 'cursory-js';
+            const { points } = generateTrajectory([0, 0], [300, 200], { seed: 1 });
+            assert.ok(points.length > 5);
+            assert.ok(LOADED_TRAJECTORIES.length > 2000, 'trajectory database did not ship');
+            console.log('esm import: ' + points.length + ' points, ' + LOADED_TRAJECTORIES.length + ' recordings');
+          "
