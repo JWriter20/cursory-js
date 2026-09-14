@@ -6,7 +6,7 @@
 // Without --seed the endpoints and the paths are both random. Points are drawn
 // as dots along the path, so clusters of dots are where the cursor slowed down.
 
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -73,5 +73,6 @@ ${paths.join('\n')}
 const output = valueOf('--out')
   ? resolve(valueOf('--out'))
   : join(dirname(fileURLToPath(import.meta.url)), 'trajectories.svg');
+mkdirSync(dirname(output), { recursive: true });
 writeFileSync(output, svg);
 console.log(`\nwrote ${output}`);

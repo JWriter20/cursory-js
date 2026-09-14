@@ -45,13 +45,13 @@ jobs:
         run: npm run build
 
       - name: Run the example against the build
-        run: node examples/plotTrajectories.mjs --seed 7 --out /tmp/trajectories.svg
+        run: node examples/plotTrajectories.mjs --seed 7 --out "${{ runner.temp }}/trajectories.svg"
 
       - name: Check the committed example image is current
         if: matrix.os == 'ubuntu-latest' && matrix.node-version == '20'
         run: |
-          node examples/plotTrajectories.mjs --seed 7 --out /tmp/check.svg
-          diff -u docs/trajectories.svg /tmp/check.svg
+          node examples/plotTrajectories.mjs --seed 7 --out "${{ runner.temp }}/check.svg"
+          diff -u docs/trajectories.svg "${{ runner.temp }}/check.svg"
 
       # `npm test` exercises src/. This exercises what consumers actually get:
       # the tarball, its entry points, and the data file the build has to copy
