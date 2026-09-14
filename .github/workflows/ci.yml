@@ -11,11 +11,19 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest]
         node-version: ['18', '20', '22', '24']
+        # The data file is resolved relative to the compiled module, so the
+        # other platforms' path handling needs covering too.
+        include:
+          - os: windows-latest
+            node-version: '22'
+          - os: macos-latest
+            node-version: '22'
 
     steps:
       - uses: actions/checkout@v7
@@ -40,7 +48,7 @@ jobs:
         run: node examples/plotTrajectories.mjs --seed 7 --out /tmp/trajectories.svg
 
       - name: Check the committed example image is current
-        if: matrix.node-version == '20'
+        if: matrix.os == 'ubuntu-latest' && matrix.node-version == '20'
         run: |
           node examples/plotTrajectories.mjs --seed 7 --out /tmp/check.svg
           diff -u docs/trajectories.svg /tmp/check.svg
@@ -49,6 +57,7 @@ jobs:
       # the tarball, its entry points, and the data file the build has to copy
       # in. A broken `files` list or a missed asset passes every other step.
       - name: Install the packed tarball and use it
+        shell: bash
         run: |
           set -e
           npm pack

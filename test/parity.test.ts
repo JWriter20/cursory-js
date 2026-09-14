@@ -143,6 +143,9 @@ test('a long normal stream matches numpy through both ziggurat rejection paths',
 
 test('generated trajectories match the Python original', () => {
   assert.ok(fixture.trajectories.length > 0, 'fixture has cases');
+  let worstGap = 0;
+  let comparedCoordinates = 0;
+  let identicalCoordinates = 0;
 
   for (const recorded of fixture.trajectories) {
     const { start, end, frequency, frequencyRandomizer, seed, directness } = recorded.case;
@@ -165,7 +168,21 @@ test('generated trajectories match the Python original', () => {
           gap <= COORDINATE_TOLERANCE,
           `${label} point ${i} axis ${axis}: off by ${gap}`,
         );
+        worstGap = Math.max(worstGap, gap);
+        comparedCoordinates += 1;
+        if (gap === 0) {
+          identicalCoordinates += 1;
+        }
       }
     }
   }
+
+  // Reported rather than asserted, so regenerating the fixture with more cases
+  // (scripts/generate-parity-fixtures.py --cases N) measures this claim again
+  // instead of inheriting it.
+  console.log(
+    `    ${fixture.trajectories.length} trajectories, ${comparedCoordinates} coordinates: ` +
+      `worst gap ${worstGap.toExponential(2)} px, ` +
+      `${((100 * identicalCoordinates) / comparedCoordinates).toFixed(1)}% bit-identical`,
+  );
 });

@@ -1,6 +1,6 @@
 {
   "name": "cursory-js",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Mouse Trajectory Factory. Generate 100% human-realistic mouse trajectories with timings. A TypeScript port of Vinyzu's cursory.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

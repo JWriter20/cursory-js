@@ -182,13 +182,24 @@ normal stream, against values numpy produced. A seed that drew even one
 different number would give a different trajectory, not a slightly different
 one, so this is the part that has to be exact.
 
-**Coordinates match to about 2 × 10⁻¹² px.** Across 407 randomised movements the
-largest difference in any coordinate was 2.2e-12 px, and roughly 78% were
-identical bit for bit. The residue is `exp`, `atan2`, `sin` and `cos` rounding
-differently in V8 than in the C library numpy and CPython call, which is also
-why the parity test compares coordinates to a tolerance rather than exactly.
-`math.hypot` is reproduced exactly, using CPython's own `vector_norm`, because
-the distance between the endpoints feeds everything downstream.
+**Coordinates match to about 1.4 × 10⁻¹² px.** Over 490 randomised movements —
+85,506 coordinates — the largest difference in any one of them was 1.36e-12 px,
+and 80% were identical bit for bit. The residue is `exp`, `atan2`, `sin` and
+`cos` rounding differently in V8 than in the C library numpy and CPython call,
+which is also why the parity test compares coordinates to a tolerance rather
+than exactly. `math.hypot` is reproduced exactly, using CPython's own
+`vector_norm`, because the distance between the endpoints feeds everything
+downstream.
+
+Those are measurements, not estimates, and `npm test` prints its own:
+
+```
+149 trajectories, 23512 coordinates: worst gap 1.36e-12 px, 77.8% bit-identical
+```
+
+The committed fixture holds 149 movements to keep the repository small.
+`python scripts/generate-parity-fixtures.py --cases 500` regenerates it at any
+size, and the suite re-measures rather than repeating the figure above.
 
 **About 0.2% of movements pick a different recording.** When two recordings
 score exactly the same, numpy's ordering comes from an unstable sort whose SIMD
@@ -198,6 +209,10 @@ deterministic everywhere. In 3,000 sampled queries, 5 disagreed with numpy, and
 every one of them was an exact tie; there were no disagreements without one. A
 tie means the recordings were equally good matches, so the result is equally
 valid, just not the same one.
+
+The fixture generator excludes any movement that hit a tie anywhere — about 2%
+of them, since each movement runs 21 candidate queries — so the checked-in
+expectations never depend on the CPU that produced them.
 
 **One quirk of the original is reproduced on purpose.** numpy types an array of
 recorded whole-pixel coordinates as `int64`, so the original's

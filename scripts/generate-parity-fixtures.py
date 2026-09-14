@@ -1,10 +1,12 @@
 """Record what the Python original produces, so the port can be tested against it.
 
     pip install "cursory==2.0.0" "numpy~=2.3"
-    python scripts/generate-parity-fixtures.py
+    python scripts/generate-parity-fixtures.py [--cases N]
 
 Writes test/fixtures/parity.json. Re-run it only to add cases or to move to a new
-upstream release; the checked-in file is what CI compares against.
+upstream release; the checked-in file is what CI compares against. --cases trades
+repository size for confidence: the coordinate agreement quoted in README.md was
+measured with several hundred, far more than is worth committing.
 
 Cases where numpy's own candidate ordering is not reproducible are skipped. numpy
 sorts the candidate scores with an unstable introsort whose SIMD kernel is chosen
@@ -15,6 +17,7 @@ rather than being baked in as if they were stable.
 
 from __future__ import annotations
 
+import argparse
 import json
 import math
 import random
@@ -26,7 +29,7 @@ import cursory.trajectory_selection as selection
 from cursory import generate_trajectory
 
 FIXTURE_PATH = Path(__file__).resolve().parent.parent / "test" / "fixtures" / "parity.json"
-CASE_COUNT = 50
+DEFAULT_CASE_COUNT = 150
 # 2**160 exceeds SeedSequence's four-word pool, exercising its spill path.
 RNG_SEEDS = [0, 1, 2, 42, 12345, 2**31, 2**32, 2**32 + 7, 2**53, 2**64 + 12345, 2**128 - 1, 2**160 + 12345]
 INTEGER_RANGES = [1, 2, 3, 5, 86, 255, 256, 1000, 2357, 65535, 65536, 2**32, 10**6]
@@ -74,7 +77,7 @@ class TieDetector:
         return self.original(target_start, target_end, direction_weight, length_weight, top_n)
 
 
-def build_cases() -> list[dict]:
+def build_cases(case_count: int) -> list[dict]:
     random.seed(20260913)
     cases = [
         {"start": [0, 0], "end": [1, 0], "frequency": 60, "frequencyRandomizer": 1, "seed": 1, "directness": 0.65},
@@ -85,7 +88,7 @@ def build_cases() -> list[dict]:
         {"start": [100.0, 100.0], "end": [100.0, 100.0], "frequency": 60, "frequencyRandomizer": 1, "seed": 6, "directness": 0.65},
         {"start": [0, 0], "end": [5000, 3000], "frequency": 60, "frequencyRandomizer": 1, "seed": 2**39, "directness": 0.5},
     ]
-    while len(cases) < CASE_COUNT:
+    while len(cases) < case_count:
         cases.append({
             "start": [random.uniform(0, 1920), random.uniform(0, 1080)],
             "end": [random.uniform(0, 1920), random.uniform(0, 1080)],
@@ -94,12 +97,12 @@ def build_cases() -> list[dict]:
             "seed": random.randrange(0, 2**40),
             "directness": random.choice([0.0, 0.25, 0.65, 1.0]),
         })
-    return cases
+    return cases[:case_count] if case_count < len(cases) else cases
 
 
-def record_trajectories() -> tuple[list[dict], int]:
+def record_trajectories(case_count: int) -> tuple[list[dict], int]:
     recorded, skipped = [], 0
-    for case in build_cases():
+    for case in build_cases(case_count):
         with TieDetector() as detector:
             points, timings = generate_trajectory(
                 (case["start"][0], case["start"][1]),
@@ -185,7 +188,14 @@ def record_numeric() -> dict:
 
 
 def main() -> None:
-    trajectories, skipped = record_trajectories()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--cases", type=int, default=DEFAULT_CASE_COUNT,
+        help=f"how many trajectories to record (default: {DEFAULT_CASE_COUNT})",
+    )
+    arguments = parser.parse_args()
+
+    trajectories, skipped = record_trajectories(arguments.cases)
     fixture = {
         "source": "https://github.com/Vinyzu/cursory",
         "cursoryVersion": "2.0.0",
