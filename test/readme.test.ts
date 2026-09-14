@@ -13,7 +13,9 @@ import test from 'node:test';
 
 import * as cursory from '../src/index';
 
-const README = readFileSync(join(__dirname, '..', '..', 'README.md'), 'utf8');
+// Normalised because git checks this file out with CRLF on Windows, which the
+// fence pattern below would otherwise miss entirely.
+const README = readFileSync(join(__dirname, '..', '..', 'README.md'), 'utf8').replace(/\r\n/g, '\n');
 
 /** Bindings the README's snippets assume from their surrounding prose. */
 const scope = {
