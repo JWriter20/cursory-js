@@ -27,11 +27,11 @@ Improvements to the algorithms themselves belong upstream first.
 
 ## Parity fixtures
 
-`test/fixtures/parity.json` holds output recorded from Python Cursory 2.0.0. To
+`test/fixtures/parity.json` holds output recorded from Python Cursory 2.0.1. To
 regenerate it:
 
 ```bash
-pip install "cursory==2.0.0" "numpy~=2.3"
+pip install "cursory==2.0.1" "numpy~=2.3"
 python scripts/generate-parity-fixtures.py
 ```
 
