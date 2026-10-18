@@ -1,6 +1,6 @@
 """Record what the Python original produces, so the port can be tested against it.
 
-    pip install "cursory==2.0.0" "numpy~=2.3"
+    pip install "cursory==2.1.0" "numpy~=2.3"
     python scripts/generate-parity-fixtures.py [--cases N]
 
 Writes test/fixtures/parity.json. Re-run it only to add cases or to move to a new
@@ -198,7 +198,7 @@ def main() -> None:
     trajectories, skipped = record_trajectories(arguments.cases)
     fixture = {
         "source": "https://github.com/Vinyzu/cursory",
-        "cursoryVersion": "2.0.0",
+        "cursoryVersion": "2.1.0",
         "numpyVersion": np.__version__,
         "skippedTiedCases": skipped,
         "rng": record_rng(),

@@ -151,7 +151,8 @@ take an `rng` argument.
 2. **Morph it.** Scaled, rotated and translated onto the requested endpoints
    exactly, while keeping the shape of the original.
 3. **Add noise.** Jittered and knotted, so positions vary slightly and the path
-   cannot be recognised by hashing it.
+   cannot be recognised by hashing it. The noise fades to nothing at both ends,
+   so the cursor still leaves and arrives the way the recording did.
 4. **Regenerate with timings.** Resampled at the requested frequency using the
    recording's own interval pattern, with noise added to the sample times.
 5. **Re-add noise.** Jittered and knotted again, since resampling smooths the
@@ -168,7 +169,7 @@ take an `rng` argument.
 ## Parity with the Python original
 
 This is a port, not a rewrite, and it is tested against output recorded from
-Python Cursory 2.0.0 — see [`test/parity.test.ts`](./test/parity.test.ts) and
+Python Cursory 2.1.0 — see [`test/parity.test.ts`](./test/parity.test.ts) and
 [`scripts/generate-parity-fixtures.py`](./scripts/generate-parity-fixtures.py),
 which regenerates the fixtures.
 
@@ -182,9 +183,9 @@ normal stream, against values numpy produced. A seed that drew even one
 different number would give a different trajectory, not a slightly different
 one, so this is the part that has to be exact.
 
-**Coordinates match to about 1.4 × 10⁻¹² px.** Over 490 randomised movements —
-85,506 coordinates — the largest difference in any one of them was 1.36e-12 px,
-and 80% were identical bit for bit. The residue is `exp`, `atan2`, `sin` and
+**Coordinates match to about 1 × 10⁻¹² px.** Over 490 randomised movements —
+85,526 coordinates — the largest difference in any one of them was 9.09e-13 px,
+and 84% were identical bit for bit. The residue is `exp`, `atan2`, `sin` and
 `cos` rounding differently in V8 than in the C library numpy and CPython call,
 which is also why the parity test compares coordinates to a tolerance rather
 than exactly. `math.hypot` is reproduced exactly, using CPython's own
@@ -194,7 +195,7 @@ downstream.
 Those are measurements, not estimates, and `npm test` prints its own:
 
 ```
-149 trajectories, 23512 coordinates: worst gap 1.36e-12 px, 77.8% bit-identical
+149 trajectories, 23538 coordinates: worst gap 9.09e-13 px, 82.9% bit-identical
 ```
 
 The committed fixture holds 149 movements to keep the repository small.
@@ -213,14 +214,6 @@ valid, just not the same one.
 The fixture generator excludes any movement that hit a tie anywhere — about 2%
 of them, since each movement runs 21 candidate queries — so the checked-in
 expectations never depend on the CPU that produced them.
-
-**One quirk of the original is reproduced on purpose.** numpy types an array of
-recorded whole-pixel coordinates as `int64`, so the original's
-`np.zeros_like(tangents)` is an integer array, and storing unit normals in it
-rounds them to 0 and ±1. Most recordings in the database are whole-pixel, so
-this shapes most of the jitter Cursory actually produces. `jitterTrajectory`
-does the same thing for whole-pixel input. Removing it would be a different
-library, not a bug fix.
 
 ### Differences from the Python API
 
@@ -248,7 +241,7 @@ node examples/plotTrajectories.mjs   # writes examples/trajectories.svg
 Regenerating the parity fixtures needs the Python original:
 
 ```bash
-pip install "cursory==2.0.0" "numpy~=2.3"
+pip install "cursory==2.1.0" "numpy~=2.3"
 python scripts/generate-parity-fixtures.py
 ```
 
