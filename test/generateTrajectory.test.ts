@@ -10,6 +10,7 @@ import {
   findNearestTrajectory,
   findTrajectory,
   jitterTrajectory,
+  knotTrajectory,
   LOADED_TRAJECTORIES,
   Point,
 } from '../src/trajectorySelection';
@@ -203,4 +204,72 @@ test('jitter is lateral and not forced to alternate', () => {
     jittered.some((point, index) => index > 0 && point[1] * jittered[index - 1][1] > 0),
     'every consecutive offset flipped sign',
   );
+});
+
+test('noise leaves endpoints and stationary paths where they were', () => {
+  const paths: Point[][] = [
+    [[10, 20]],
+    [[10, 20], [10, 20], [10, 20], [10, 20]],
+    [[0, 0], [0, 0], [25, 40], [50, 50], [50, 50]],
+  ];
+  for (const noise of ['jitter', 'knots']) {
+    for (const points of paths) {
+      const rng = defaultGenerator(1);
+      const first = points[0];
+      const last = points[points.length - 1];
+      const output =
+        noise === 'jitter'
+          ? jitterTrajectory(points, 400, rng, 1)
+          : knotTrajectory(points, first, last, rng);
+
+      assert.deepEqual(output[0], first, `${noise} moved the start`);
+      assert.deepEqual(output[output.length - 1], last, `${noise} moved the end`);
+      assert.ok(output.flat().every(Number.isFinite));
+      if (first[0] === last[0] && first[1] === last[1]) {
+        assert.deepEqual(output, points, `${noise} moved a stationary path`);
+      } else {
+        assert.notDeepEqual(output[2], points[2], `${noise} left the middle untouched`);
+      }
+    }
+  }
+});
+
+test('the shape does not depend on where on the screen the movement happens', () => {
+  const offset: Point = [540.0, 360.0];
+  const first = generateTrajectory([960.0, 540.0], [960.0, 240.0], { seed: 42 });
+  const moved = generateTrajectory([1500.0, 900.0], [1500.0, 600.0], { seed: 42 });
+
+  assert.deepEqual(moved.timings, first.timings);
+  first.points.forEach((point, index) => {
+    assert.ok(Math.abs(moved.points[index][0] - offset[0] - point[0]) < 1e-8);
+    assert.ok(Math.abs(moved.points[index][1] - offset[1] - point[1]) < 1e-8);
+  });
+});
+
+test('an upward move does not double back as it arrives', () => {
+  const { points } = generateTrajectory([960.0, 540.0], [960.0, 240.0], { seed: 2000001 });
+  const arc = [0];
+  for (let i = 1; i < points.length; i += 1) {
+    arc.push(arc[i - 1] + Math.hypot(points[i][0] - points[i - 1][0], points[i][1] - points[i - 1][1]));
+  }
+  // Compare directions over the final two 5-pixel stretches, ignoring sample
+  // density and endpoint pauses.
+  const at = (distance: number): Point => {
+    const index = arc.findIndex((value) => value >= distance);
+    if (index <= 0) {
+      return points[Math.max(index, 0)];
+    }
+    const alpha = (distance - arc[index - 1]) / (arc[index] - arc[index - 1] || 1);
+    return [
+      points[index - 1][0] + alpha * (points[index][0] - points[index - 1][0]),
+      points[index - 1][1] + alpha * (points[index][1] - points[index - 1][1]),
+    ];
+  };
+  const total = arc[arc.length - 1];
+  const [a, b, c] = [at(total - 10), at(total - 5), at(total)];
+  const first = [b[0] - a[0], b[1] - a[1]];
+  const second = [c[0] - b[0], c[1] - b[1]];
+  const dot = first[0] * second[0] + first[1] * second[1];
+
+  assert.ok(dot > 0.5 * Math.hypot(first[0], first[1]) * Math.hypot(second[0], second[1]));
 });
